@@ -38,7 +38,7 @@ SimpleKalmanFilter pressureKalmanFilter(1, 1, 0.01);
 void updateBarometer(void);
 void updateMatrix(float *vetor);
 
-float pressure, filteredPressure, temperature, referenceAltitude;
+float pressure, filteredPressure, temperature, referenceAltitude, altitude;
 float altitudeData[ALTITUDE_DATA_POINTS + 1];
 float parachuteReleaseTime = 0;
 
@@ -47,8 +47,6 @@ int apogee = 0;
 unsigned int eepromMemLocation = 0;
 
 bool parachuteReleased = false;
-
-int32_t altitude;
 
 void setup()
 {
@@ -59,7 +57,8 @@ void setup()
     Wire.begin();
     // 38400 default because it works as well at 8MHz as it does at 16MHz
     Serial.begin(115200);
-
+    Serial.println("Setting pin " + SQUIB_PIN + "as squib output");
+    pinMode(SQUIB_PIN, OUTPUT);
     // Initialize devices
     Serial.println("Initializing I2C devices...");
     barometer.initialize();
@@ -74,18 +73,15 @@ void setup()
     // Serial.println(mag.testConnection() ? "HMC5883L connection successful" : "HMC5883L connection failed");
     // Serial.println(gyro.testConnection() ? "L3G4200D connection successful" : "L3G4200D connection failed");
 
-    for (int i = 0; i <= ALTITUDE_DATA_POINTS; i++) // initialize altitude data array
+    for (int i = 0; i <= ALTITUDE_DATA_POINTS; i++) // Initialize altitude data array
     {
         updateBarometer();
         updateMatrix(altitudeData);
     }
     referenceAltitude = altitude; //altitude correction factor
 
-    EEPROM.get(1, eepromMemLocation); //gets current EEPROM memory adress to be used
-
-    if (!Serial) // data writing code, only for when pc is not conected
-    {
-        eepromMemLocation += EEPROM_BYTES_NUMBER; //changes to new write location
+    EEPROM.get(0, eepromMemLocation); //gets current EEPROM memory adress to be used
+    eepromMemLocation += EEPROM_BYTES_NUMBER; //changes to new write location
 
         //checks if at the end of memory restart count
         if (eepromMemLocation + EEPROM_BYTES_NUMBER > EEPROM.length())
@@ -93,12 +89,10 @@ void setup()
             eepromMemLocation = 0;
         }
         EEPROM.put(1, eepromMemLocation); //updates memory location tracker
-    }
-    else
-    {
+
         EEPROM.get(eepromMemLocation, lastApogee);
         EEPROM.get(eepromMemLocation + 4, lastReferenceAltitude);
-    }
+
     Serial.print("Last recorded uncorrected Apogee: ");
     Serial.println(lastApogee);
     Serial.print("Last recorded reference Altitude: ");
@@ -106,12 +100,13 @@ void setup()
     Serial.print("Last recorded corrected Apogee: ");
     Serial.println(lastApogee - lastReferenceAltitude);
 
-    pinMode(SQUIB_PIN, OUTPUT);
+
 }
 
 void loop()
 {
     updateBarometer();     // Updates barometer information
+    
     if (apogee < altitude) // Checks if the most recent altitude data is higher than the current apogee value
     {
         apogee = altitude; // If it is, updates apogee
@@ -126,7 +121,7 @@ void loop()
     Serial.print("Barometer altitude: "); // Raw altitude
     Serial.println(altitude - referenceAltitude);
 
-    /*RECOVERY CODE*/
+    /* RECOVERY CODE */
     updateMatrix(altitudeData); // Updates the altitude data matrix
 
     Serial.println(parachuteReleased); // Debugging
