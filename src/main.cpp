@@ -50,15 +50,15 @@ bool parachuteReleased = false;
 
 void setup()
 {
-
     float lastApogee, lastReferenceAltitude;
-
+    
+    pinMode(SQUIB_PIN, OUTPUT);
+    
     // Join I2C bus (I2Cdev library doesn't do this automatically)
     Wire.begin();
     // 38400 default because it works as well at 8MHz as it does at 16MHz
     Serial.begin(115200);
-    Serial.println("Setting pin " + SQUIB_PIN + "as squib output");
-    pinMode(SQUIB_PIN, OUTPUT);
+    
     // Initialize devices
     Serial.println("Initializing I2C devices...");
     barometer.initialize();
