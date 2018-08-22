@@ -17,6 +17,7 @@
 #define ALTITUDE_DATA_POINTS 30
 #define TELEMETRY_DATA_POINTS 4
 #define EEPROM_BYTES_NUMBER 8
+#define MIN_ALT_FOR_APOGEE_DETECTION 10
 
 BMP085 barometer;
 //not using, just here to check sensors health
@@ -45,7 +46,7 @@ float parachuteReleaseTime = 0;
 
 int altitudeIsLowerCounter = 0;
 int apogee = 0;
-int eepromMemLocation = 0;
+unsigned int eepromMemLocation = 0;
 
 bool parachuteReleased = false;
 
@@ -153,7 +154,7 @@ void loop() {
         }
 
         // if ALTITUDE_IS_LOWER_THRESHOLD is reached write to pin
-        if (altitudeIsLowerCounter >= ALTITUDE_IS_LOWER_THRESHOLD && altitude - referenceAltitude > 10)
+        if (altitudeIsLowerCounter >= ALTITUDE_IS_LOWER_THRESHOLD && altitude - referenceAltitude > MIN_ALT_FOR_APOGEE_DETECTION)
         {
             digitalWrite(SQUIB, HIGH);
             parachuteReleaseTime = millis() / 1000.0;
