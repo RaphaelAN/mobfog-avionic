@@ -201,7 +201,7 @@ void loop()
 void updateMatrix(float *vetor)
 {
     // Altitude matrix updates to have the newest data in the last index
-    for (int i = 0; i <= ALTITUDE_DATA_POINTS; i++)
+    for (int i = 0; i < ALTITUDE_DATA_POINTS; i++)
     {
         altitudeData[i] = altitudeData[i + 1];
     }
