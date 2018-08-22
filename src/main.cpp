@@ -191,11 +191,11 @@ void loop()
     }
 
     /*TELEMETRY CODE*/
-    float telemetryVector[TELEMETRY_DATA_POINTS]; // Array to be sent by APC
-    telemetryVector[0] = temperature;
-    telemetryVector[1] = pressure;
-    telemetryVector[2] = filteredPressure;
-    telemetryVector[3] = parachuteReleaseTime;
+    // float telemetryVector[TELEMETRY_DATA_POINTS]; // Array to be sent by APC
+    // telemetryVector[0] = temperature;
+    // telemetryVector[1] = pressure;
+    // telemetryVector[2] = filteredPressure;
+    // telemetryVector[3] = parachuteReleaseTime;
 }
 
 void updateMatrix(float *vetor)
