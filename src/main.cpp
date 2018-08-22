@@ -1,12 +1,12 @@
 #include "Wire.h"   //Arduino Wire Library
 #include "I2Cdev.h" //High level I2C Library
-#include "EEPROM.h" //interanal arduino memory
+#include "EEPROM.h" //Internal Arduino memory
 
 //Sensor Libraries 
 #include "BMP085.h" //Barometer, Temperature
-#include "ADXL345.h" //Accelerometer -- NOT IN USE
-#include "HMC5883L.h" //Magnetometer -- NOT IN USE
-#include "L3G4200D.h" //Gyroscope -- NOT IN USE
+//#include "ADXL345.h" //Accelerometer
+//#include "HMC5883L.h" //Magnetometer
+//#include "L3G4200D.h" //Gyroscope
 
 //Kalman Filter
 #include <SimpleKalmanFilter.h> 
