@@ -121,13 +121,15 @@ void loop()
     /*EEPROM WRITE CODE*/
     if(eepromWritePermission && eepromCurrentAddr < (EEPROM.length() - EEPROM_ADDR_SAFETY_MARGIN))  
     {
-        if(!parachuteReleased) 
+        if(!parachuteReleased)
+        {
             if(altitude > eepromWriteAltitudeThreshold) //writes data every EEPROM_ALTITUDE_WRITE_STEP meters on the way up
             {
                 EEPROM.put(eepromCurrentAddr, altitude);
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
                 eepromWriteAltitudeThreshold += EEPROM_ALTITUDE_WRITE_STEP;
             }
+        }
         else
         {
             if(altitude < eepromWriteAltitudeThreshold) //writes data every EEPROM_ALTITUDE_WRITE_STEP meters on the way down
