@@ -17,7 +17,7 @@
 
 #define SAFETY_CLEAREANSE_TIME 10000 // time waited for safe startup in milliseconds
 #define ALTITUDE_IS_LOWER_THRESHOLD 30 // Number of consecutive lower values for altitude to detect apogee
-#define MIN_ALT_FOR_APOGEE_DETECTION 1
+#define MIN_ALT_FOR_APOGEE_DETECTION 10
 #define ALTITUDE_DATA_POINTS 100
 #define TELEMETRY_DATA_POINTS 4
 
@@ -25,7 +25,7 @@
 #define REFERENCE_ALTITUDE_ADRESS 8
 #define APOGEE_ADRESS 4
 #define EEPROM_DATA_TYPE float // data type to be writen to eeprom 
-#define EEPROM_ALTITUDE_WRITE_STEP 0.5 // size of step in meters between eeprom  altitude data writes
+#define EEPROM_ALTITUDE_WRITE_STEP 3 // size of step in meters between eeprom  altitude data writes
 #define EEPROM_ADDR_SAFETY_MARGIN 24
 
 BMP085 barometer;
