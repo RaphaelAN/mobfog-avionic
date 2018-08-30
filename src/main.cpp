@@ -125,7 +125,7 @@ void loop()
         {
             if(altitude - referenceAltitude > eepromWriteAltitudeThreshold) //writes data every EEPROM_ALTITUDE_WRITE_STEP meters on the way up
             {
-                EEPROM.put(eepromCurrentAddr, altitude);
+                EEPROM.put(eepromCurrentAddr, pressure);
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
                 eepromWriteAltitudeThreshold += EEPROM_ALTITUDE_WRITE_STEP;
             }
@@ -134,7 +134,7 @@ void loop()
         {
             if(altitude - referenceAltitude < eepromWriteAltitudeThreshold) //writes data every EEPROM_ALTITUDE_WRITE_STEP meters on the way down
             {
-                EEPROM.put(eepromCurrentAddr, altitude);
+                EEPROM.put(eepromCurrentAddr, pressure);
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
                 eepromWriteAltitudeThreshold -= EEPROM_ALTITUDE_WRITE_STEP;
             }
