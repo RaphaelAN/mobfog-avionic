@@ -13,18 +13,19 @@
 #include <SimpleKalmanFilter.h>
 
 #define SQUIB_PIN 10
+#define BUZZER_PIN 6
 
 #define SAFETY_CLEAREANSE_TIME 10000 // time waited for safe startup in milliseconds
-#define ALTITUDE_IS_LOWER_THRESHOLD 10 // Number of consecutive lower values for altitude to detect apogee
-#define MIN_ALT_FOR_APOGEE_DETECTION 0
-#define ALTITUDE_DATA_POINTS 30
+#define ALTITUDE_IS_LOWER_THRESHOLD 30 // Number of consecutive lower values for altitude to detect apogee
+#define MIN_ALT_FOR_APOGEE_DETECTION 1
+#define ALTITUDE_DATA_POINTS 100
 #define TELEMETRY_DATA_POINTS 4
 
-#define SET_DATA_WRITE_ALLOW false // sets eeprom write state to true
+#define SET_DATA_WRITE_ALLOW true // sets eeprom write state to true
 #define REFERENCE_ALTITUDE_ADRESS 8
 #define APOGEE_ADRESS 4
 #define EEPROM_DATA_TYPE float // data type to be writen to eeprom 
-#define EEPROM_ALTITUDE_WRITE_STEP 2 // size of step in meters between eeprom  altitude data writes
+#define EEPROM_ALTITUDE_WRITE_STEP 0.5 // size of step in meters between eeprom  altitude data writes
 #define EEPROM_ADDR_SAFETY_MARGIN 24
 
 BMP085 barometer;
@@ -51,7 +52,8 @@ float altitudeData[ALTITUDE_DATA_POINTS + 1];
 float parachuteReleaseTime = 0;
 float eepromWriteAltitudeThreshold = MIN_ALT_FOR_APOGEE_DETECTION;
 
-int altitudeIsLowerCounter = 0, eepromCurrentAddr = REFERENCE_ALTITUDE_ADRESS + sizeof(EEPROM_DATA_TYPE);
+int altitudeIsLowerCounter = 0;
+unsigned int eepromCurrentAddr = REFERENCE_ALTITUDE_ADRESS + sizeof(EEPROM_DATA_TYPE);
 
 bool eepromWritePermission;
 
@@ -62,6 +64,7 @@ void setup()
     float lastApogee, lastReferenceAltitude;
 
     pinMode(SQUIB_PIN, OUTPUT);
+    pinMode(BUZZER_PIN, OUTPUT);
 
     // Join I2C bus (I2Cdev library doesn't do this automatically)
     Wire.begin();
@@ -83,9 +86,9 @@ void setup()
     // Serial.println(gyro.testConnection() ? "L3G4200D connection successful" : "L3G4200D connection failed");
 
     
-    delay(SAFETY_CLEAREANSE_TIME);
+    //delay(SAFETY_CLEAREANSE_TIME);
 
-    for (int i = 0; i <= ALTITUDE_DATA_POINTS; i++) // Initialize altitude data array
+    for (int i = 4; i <= ALTITUDE_DATA_POINTS; i++) // Initialize altitude data array
     {
         updateBarometer();
         updateMatrix(altitudeData);
@@ -109,6 +112,21 @@ void setup()
     Serial.println(lastReferenceAltitude);
     Serial.print("Last recorded corrected Apogee: ");
     Serial.println(lastApogee - lastReferenceAltitude);
+
+    float eeprom;
+    unsigned int segundos;
+
+    for(unsigned int i = 4; i < EEPROM.length(); i+=4)
+    {
+        EEPROM.get(i, eeprom);
+        Serial.print(eeprom);
+        Serial.print(",");
+        i += 4;
+        EEPROM.get(i, segundos);
+        Serial.print(segundos);
+        Serial.print(",");
+
+    }
 }
 
 void loop()
@@ -116,18 +134,28 @@ void loop()
     updateBarometer();          // Updates barometer information
     updateMatrix(altitudeData); // Updates the altitude data matrix
 
+    if(eepromWritePermission)
+    {
+        digitalWrite(BUZZER_PIN, HIGH);
+    }
+
 
 
     /*EEPROM WRITE CODE*/
+
     if(eepromWritePermission && eepromCurrentAddr < (EEPROM.length() - EEPROM_ADDR_SAFETY_MARGIN))  
     {
-        if(!parachuteReleased)
+        if(!parachuteReleased) 
         {
             if(altitude - referenceAltitude > eepromWriteAltitudeThreshold) //writes data every EEPROM_ALTITUDE_WRITE_STEP meters on the way up
             {
                 EEPROM.put(eepromCurrentAddr, pressure);
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
+                EEPROM.put(eepromCurrentAddr, (unsigned int)millis() / 100);
+                eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
                 eepromWriteAltitudeThreshold += EEPROM_ALTITUDE_WRITE_STEP;
+                Serial.print("2");
+                
             }
         }
         else
@@ -136,7 +164,10 @@ void loop()
             {
                 EEPROM.put(eepromCurrentAddr, pressure);
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
+                EEPROM.put(eepromCurrentAddr, (unsigned int)millis() / 100);
+                eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
                 eepromWriteAltitudeThreshold -= EEPROM_ALTITUDE_WRITE_STEP;
+                Serial.print("1");
             }
         } 
     }
@@ -151,15 +182,15 @@ void loop()
     // Display measured values if appropriate
     if (!parachuteReleased)
     {
-        Serial.print("T/P/A/Apogee\t");
-        Serial.print(temperature);
-        Serial.print("\t");
-        Serial.print(pressure);
-        Serial.print("\t");
-        Serial.print(apogee);
-        Serial.print("\t");
-        Serial.print("Barometer altitude: "); // Raw altitude
-        Serial.println(altitude - referenceAltitude);
+        //Serial.print("T/P/A/Apogee\t");
+        //Serial.print(temperature);
+        //Serial.print("\t");
+        //Serial.print(pressure);
+        //Serial.print("\t");
+        //Serial.print(apogee);
+        //Serial.print("\t");
+        //Serial.print("Barometer altitude: "); // Raw altitude
+        //Serial.println(altitude - referenceAltitude);
     }
 
     /* RECOVERY CODE */
@@ -194,11 +225,12 @@ void loop()
                 EEPROM.put(REFERENCE_ALTITUDE_ADRESS, referenceAltitude);
                 EEPROM.put(APOGEE_ADRESS, apogee);
 
-                EEPROM.put(eepromCurrentAddr, apogee); // adds apogee to next eeprom write
+                EEPROM.put(eepromCurrentAddr, pressure); // adds apogee to next eeprom write
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
 
-                EEPROM.put(eepromCurrentAddr, altitude); // adds current altitude to next eeprom write
+                EEPROM.put(eepromCurrentAddr, (unsigned int)millis() / 100); // adds apogee to next eeprom write
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
+
 
                 EEPROM.put(0, false); // sets data write allow to false
             }
