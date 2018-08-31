@@ -15,7 +15,7 @@
 #define BUZZER_ENABLED false //enables buzzer code, should be true during flight
 #define SET_DATA_WRITE_ALLOW true // sets eeprom write state to true, should be false during flight
 
-#define SQUIB_PIN 10
+#define SQUIB_PIN 3
 #define BUZZER_PIN 6
 #define WRITE_PERMISSION_LED 5
 #define PARACHUTE_RELEASED_LED 4
