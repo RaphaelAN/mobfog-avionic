@@ -12,22 +12,28 @@
 //Kalman Filter
 #include <SimpleKalmanFilter.h>
 
-#define BUZZER_ENABLED false //enables buzzer code, should be true during flight
+//Apc Serial port
+#include <SoftwareSerial.h>
+
+#define BUZZER_ENABLED false      //enables buzzer code, should be true during flight
 #define SET_DATA_WRITE_ALLOW true // sets eeprom write state to true, should be false during flight
 
 #define SQUIB_PIN 3
-#define BUZZER_PIN 6
-#define WRITE_PERMISSION_LED 5
 #define PARACHUTE_RELEASED_LED 4
+#define WRITE_PERMISSION_LED 5
+#define BUZZER_PIN 6
+#define RX_FROM_APC 10
+#define TX_FROM_APC 11
 
 #define SAFETY_CLEAREANSE_TIME 10000   // time waited for safe startup in milliseconds
 #define ALTITUDE_IS_LOWER_THRESHOLD 30 // Number of consecutive lower values for altitude to detect apogee
 #define MIN_ALT_FOR_APOGEE_DETECTION 0
 #define ALTITUDE_DATA_POINTS 100
+
 #define TELEMETRY_DATA_POINTS 4
 #define REFERENCE_ALTITUDE_ADRESS 8
 #define APOGEE_ADRESS 4
-#define EEPROM_DATA_TYPE float       // data type to be writen to eeprom
+#define EEPROM_DATA_TYPE float         // data type to be writen to eeprom
 #define EEPROM_ALTITUDE_WRITE_STEP 0.5 // size of step in meters between eeprom  altitude data writes
 #define EEPROM_ADDR_SAFETY_MARGIN 4
 
@@ -58,6 +64,9 @@ float eepromWriteAltitudeThreshold = MIN_ALT_FOR_APOGEE_DETECTION;
 int altitudeIsLowerCounter = 0;
 unsigned int eepromCurrentAddr = REFERENCE_ALTITUDE_ADRESS + sizeof(EEPROM_DATA_TYPE);
 
+//creates a new software Serial port for the APC (rx: pin 10, tx: pin 11)
+SoftwareSerial SerialAPC = SoftwareSerial(RX_FROM_APC, TX_FROM_APC);
+
 bool eepromWritePermission;
 
 bool parachuteReleased = false;
@@ -70,11 +79,17 @@ void setup()
     pinMode(BUZZER_PIN, OUTPUT);
     pinMode(WRITE_PERMISSION_LED, OUTPUT);
     pinMode(PARACHUTE_RELEASED_LED, OUTPUT);
+    pinMode(RX_FROM_APC, INPUT);
+    pinMode(TX_FROM_APC, OUTPUT);
 
     // Join I2C bus (I2Cdev library doesn't do this automatically)
     Wire.begin();
+
     // 38400 default because it works as well at 8MHz as it does at 16MHz
     Serial.begin(115200);
+
+    //Apc Serial begin
+    SerialAPC.begin(115200);
 
     // Initialize devices
     Serial.println("Initializing I2C devices...");
@@ -110,7 +125,7 @@ void setup()
     if (eepromWritePermission) //Write permission signal
     {
         digitalWrite(WRITE_PERMISSION_LED, HIGH);
-        #if (BUZZER_ENABLED)
+#if (BUZZER_ENABLED)
         for (int f = 0; f < 5; f++)
         {
             digitalWrite(BUZZER_PIN, HIGH);
@@ -118,7 +133,7 @@ void setup()
             digitalWrite(BUZZER_PIN, LOW);
             delay(500);
         }
-        #endif
+#endif
     }
     EEPROM.get(REFERENCE_ALTITUDE_ADRESS, lastReferenceAltitude);
     EEPROM.get(APOGEE_ADRESS, lastApogee);
@@ -151,6 +166,7 @@ void loop()
     updateMatrix(altitudeData); // Updates the altitude data matrix
 
     /*EEPROM WRITE CODE*/
+    unsigned int currentTime = (unsigned int)millis() / 100;
 
     if (eepromWritePermission && eepromCurrentAddr < (EEPROM.length() - EEPROM_ADDR_SAFETY_MARGIN))
     {
@@ -160,7 +176,7 @@ void loop()
             {
                 EEPROM.put(eepromCurrentAddr, pressure);
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
-                EEPROM.put(eepromCurrentAddr, (unsigned int)millis() / 100);
+                EEPROM.put(eepromCurrentAddr, currentTime);
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
                 eepromWriteAltitudeThreshold += EEPROM_ALTITUDE_WRITE_STEP;
                 Serial.print("2");
@@ -172,7 +188,7 @@ void loop()
             {
                 EEPROM.put(eepromCurrentAddr, pressure);
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
-                EEPROM.put(eepromCurrentAddr, (unsigned int)millis() / 100);
+                EEPROM.put(eepromCurrentAddr, currentTime);
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
                 eepromWriteAltitudeThreshold -= EEPROM_ALTITUDE_WRITE_STEP;
                 Serial.print("1");
@@ -235,7 +251,7 @@ void loop()
                 EEPROM.put(eepromCurrentAddr, pressure); // adds apogee to next eeprom write
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
 
-                EEPROM.put(eepromCurrentAddr, (unsigned int)millis() / 100); // adds apogee to next eeprom write
+                EEPROM.put(eepromCurrentAddr, currentTime); // adds apogee to next eeprom write
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
 
                 EEPROM.put(0, false); // sets data write allow to false
@@ -244,11 +260,27 @@ void loop()
     }
 
     /*TELEMETRY CODE*/
-    // float telemetryVector[TELEMETRY_DATA_POINTS]; // Array to be sent by APC
-    // telemetryVector[0] = temperature;
-    // telemetryVector[1] = pressure;
-    // telemetryVector[2] = filteredPressure;
-    // telemetryVector[3] = parachuteReleaseTime;
+    float telemetryVector[TELEMETRY_DATA_POINTS]; // Array to be sent by APC
+    telemetryVector[0] = temperature;
+    telemetryVector[1] = pressure;
+    telemetryVector[2] = filteredPressure;
+    telemetryVector[3] = (float)currentTime;
+
+    SerialAPC.write("D; "); //writes a 'D; ' in the APC serial port to sinalize new data, can be anything that is not confusing
+
+    for (int i = 0; i < TELEMETRY_DATA_POINTS; i++)
+    {
+        String s = String(telemetryVector[i]); //converts float to string
+
+        for (int j = 0; j < s.length(); j++) //loop sends char from string through the APC's Serial
+        {
+            SerialAPC.write(s[j]);
+        }
+
+        SerialAPC.write(";"); //writes a ';' in the APC serial port to sinalize new data, can be anything that is not confusing
+    }
+
+    SerialAPC.write("\n");
 }
 
 void updateMatrix(float *vetor)
