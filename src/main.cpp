@@ -86,11 +86,10 @@ void setup()
     // Join I2C bus (I2Cdev library doesn't do this automatically)
     Wire.begin();
 
-    // 38400 default because it works as well at 8MHz as it does at 16MHz
     Serial.begin(115200);
 
     //Apc Serial begin
-    SerialAPC.begin(115200);
+    SerialAPC.begin(9600);
 
     // Initialize devices
     Serial.println("Initializing I2C devices...");
