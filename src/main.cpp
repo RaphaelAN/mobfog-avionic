@@ -19,15 +19,15 @@
 #define SET_DATA_WRITE_ALLOW true // sets eeprom write state to true, should be false during flight
 
 #define SQUIB_PIN 3
-#define PARACHUTE_RELEASED_LED 4
-#define WRITE_PERMISSION_LED 5
+#define PARACHUTE_RELEASED_LED 4 // BLUE
+#define WRITE_PERMISSION_LED 5 // RED
 #define BUZZER_PIN 6
-#define RX_FROM_APC 7
-#define TX_FROM_APC 8
+#define RX_FROM_APC 8
+#define TX_FROM_APC 7
 
-#define SAFETY_CLEAREANSE_TIME 10000   // time waited for safe startup in milliseconds
+#define SAFETY_CLEAREANSE_TIME 0   // time waited for safe startup in milliseconds
 #define ALTITUDE_IS_LOWER_THRESHOLD 30 // Number of consecutive lower values for altitude to detect apogee
-#define MIN_ALT_FOR_APOGEE_DETECTION 5
+#define MIN_ALT_FOR_APOGEE_DETECTION 0
 #define ALTITUDE_DATA_POINTS 100
 
 #define TELEMETRY_DATA_POINTS 6
@@ -148,16 +148,16 @@ void setup()
     float eeprom;
     unsigned int segundos;
 
-    for (unsigned int i = 12; i < EEPROM.length(); i += 4)
-    {
-        EEPROM.get(i, eeprom);
-        Serial.print(eeprom);
-        Serial.print(",");
-        i += 4;
-        EEPROM.get(i, segundos);
-        Serial.print(segundos);
-        Serial.print(",");
-    }
+    // for (unsigned int i = 12; i < EEPROM.length(); i += 4)
+    // {
+    //     EEPROM.get(i, eeprom);
+    //     Serial.print(eeprom);
+    //     Serial.print(",");
+    //     i += 4;
+    //     EEPROM.get(i, segundos);
+    //     Serial.print(segundos);
+    //     Serial.print(",");
+    // }
 }
 
 void loop()
@@ -166,7 +166,7 @@ void loop()
     updateMatrix(altitudeData); // Updates the altitude data matrix
 
     /*EEPROM WRITE CODE*/
-    unsigned int currentTime = (unsigned int)millis() / 100; //time in tenths of seconds
+    unsigned int currentTime = (unsigned int)(millis() / 100); //time in tenths of seconds
 
     if (eepromWritePermission && eepromCurrentAddr < (EEPROM.length() - EEPROM_ADDR_SAFETY_MARGIN))
     {
@@ -204,15 +204,15 @@ void loop()
     // Display measured values if appropriate
     if (!parachuteReleased)
     {
-        //Serial.print("T/P/A/Apogee\t");
-        //Serial.print(temperature);
-        //Serial.print("\t");
-        //Serial.print(pressure);
-        //Serial.print("\t");
-        //Serial.print(apogee);
-        //Serial.print("\t");
-        //Serial.print("Barometer altitude: "); // Raw altitude
-        //Serial.println(altitude - referenceAltitude);
+        Serial.print("T/P/A/Apogee\t");
+        Serial.print(temperature);
+        Serial.print("\t");
+        Serial.print(pressure);
+        Serial.print("\t");
+        Serial.print(apogee);
+        Serial.print("\t");
+        Serial.print("Barometer altitude: "); // Raw altitude
+        Serial.println(altitude - referenceAltitude);
     }
 
     /* RECOVERY CODE */
@@ -261,26 +261,27 @@ void loop()
 
     /*TELEMETRY CODE*/
     packageId += 1;
-    float telemetryTime = (float)currentTime / 10; //time in seconds
+    float telemetryTime = millis() / 1000.0; //time in seconds
 
     float telemetryVector[TELEMETRY_DATA_POINTS]; // Array to be sent by APC
-    telemetryVector[0] = altitude;
+    telemetryVector[0] = altitude - referenceAltitude;
     telemetryVector[1] = pressure;
     telemetryVector[2] = temperature;
     telemetryVector[3] = filteredPressure;
     telemetryVector[4] = telemetryTime;
     telemetryVector[5] = packageId;
 
-    SerialAPC.write("D; "); //writes a 'D; ' in the APC serial port to sinalize new data, can be anything that is not confusing
+    // SerialAPC.write("D; "); //writes a 'D; ' in the APC serial port to sinalize new data, can be anything that is not confusing
 
     for (int i = 0; i < TELEMETRY_DATA_POINTS; i++)
     {
         String s = String(telemetryVector[i]); //converts float to string
 
-        for (int j = 0; j < s.length(); j++) //loop sends char from string through the APC's Serial
+        for (unsigned int j = 0; j < s.length(); j++) //loop sends char from string through the APC's Serial
         {
             SerialAPC.write(s[j]);
-            SerialAPC.write("\n");
+            // Serial.println("Sent data!");
+            // SerialAPC.write("\n");
         }
 
         SerialAPC.write(";"); //writes a ';' in the APC serial port to sinalize new data, can be anything that is not confusing
