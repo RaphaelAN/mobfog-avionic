@@ -22,15 +22,15 @@
 #define PARACHUTE_RELEASED_LED 4
 #define WRITE_PERMISSION_LED 5
 #define BUZZER_PIN 6
-#define RX_FROM_APC 10
-#define TX_FROM_APC 11
+#define RX_FROM_APC 7
+#define TX_FROM_APC 8
 
 #define SAFETY_CLEAREANSE_TIME 10000   // time waited for safe startup in milliseconds
 #define ALTITUDE_IS_LOWER_THRESHOLD 30 // Number of consecutive lower values for altitude to detect apogee
-#define MIN_ALT_FOR_APOGEE_DETECTION 0
+#define MIN_ALT_FOR_APOGEE_DETECTION 5
 #define ALTITUDE_DATA_POINTS 100
 
-#define TELEMETRY_DATA_POINTS 4
+#define TELEMETRY_DATA_POINTS 6
 #define REFERENCE_ALTITUDE_ADRESS 8
 #define APOGEE_ADRESS 4
 #define EEPROM_DATA_TYPE float         // data type to be writen to eeprom
@@ -62,6 +62,7 @@ float parachuteReleaseTime = 0;
 float eepromWriteAltitudeThreshold = MIN_ALT_FOR_APOGEE_DETECTION;
 
 int altitudeIsLowerCounter = 0;
+int packageId = 0;
 unsigned int eepromCurrentAddr = REFERENCE_ALTITUDE_ADRESS + sizeof(EEPROM_DATA_TYPE);
 
 //creates a new software Serial port for the APC (rx: pin 10, tx: pin 11)
@@ -166,7 +167,7 @@ void loop()
     updateMatrix(altitudeData); // Updates the altitude data matrix
 
     /*EEPROM WRITE CODE*/
-    unsigned int currentTime = (unsigned int)millis() / 100;
+    unsigned int currentTime = (unsigned int)millis() / 100; //time in tenths of seconds
 
     if (eepromWritePermission && eepromCurrentAddr < (EEPROM.length() - EEPROM_ADDR_SAFETY_MARGIN))
     {
@@ -260,11 +261,16 @@ void loop()
     }
 
     /*TELEMETRY CODE*/
+    packageId += 1;
+    float telemetryTime = (float)currentTime / 10; //time in seconds
+
     float telemetryVector[TELEMETRY_DATA_POINTS]; // Array to be sent by APC
-    telemetryVector[0] = temperature;
+    telemetryVector[0] = altitude;
     telemetryVector[1] = pressure;
-    telemetryVector[2] = filteredPressure;
-    telemetryVector[3] = (float)currentTime;
+    telemetryVector[2] = temperature;
+    telemetryVector[3] = filteredPressure;
+    telemetryVector[4] = telemetryTime;
+    telemetryVector[5] = packageId;
 
     SerialAPC.write("D; "); //writes a 'D; ' in the APC serial port to sinalize new data, can be anything that is not confusing
 
@@ -275,6 +281,7 @@ void loop()
         for (int j = 0; j < s.length(); j++) //loop sends char from string through the APC's Serial
         {
             SerialAPC.write(s[j]);
+            SerialAPC.write("\n");
         }
 
         SerialAPC.write(";"); //writes a ';' in the APC serial port to sinalize new data, can be anything that is not confusing
