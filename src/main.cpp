@@ -26,9 +26,9 @@
 #define TX_FROM_APC 7
 
 #define SAFETY_CLEAREANSE_TIME 0   // time waited for safe startup in milliseconds
-#define ALTITUDE_IS_LOWER_THRESHOLD 30 // Number of consecutive lower values for altitude to detect apogee
-#define MIN_ALT_FOR_APOGEE_DETECTION 0
-#define ALTITUDE_DATA_POINTS 100
+#define ALTITUDE_IS_LOWER_THRESHOLD 15 // Number of consecutive lower values for altitude to detect apogee
+#define MIN_ALT_FOR_APOGEE_DETECTION 1  
+#define ALTITUDE_DATA_POINTS 30
 
 #define TELEMETRY_DATA_POINTS 6
 #define REFERENCE_ALTITUDE_ADRESS 8
@@ -92,14 +92,14 @@ void setup()
     SerialAPC.begin(9600);
 
     // Initialize devices
-    Serial.println("Initializing I2C devices...");
+    Serial.println(F("Initializing I2C devices..."));
     barometer.initialize();
     // accel.initialize();
     // mag.initialize();
     // gyro.initialize();
 
     // Verify connection
-    Serial.println("Testing device connections...");
+    Serial.println(F("Testing device connections..."));
     Serial.println(barometer.testConnection() ? "BMP085 connection successful" : "BMP085 connection failed");
     // Serial.println(accel.testConnection() ? "ADXL345 connection successful" : "ADXL345 connection failed");
     // Serial.println(mag.testConnection() ? "HMC5883L connection successful" : "HMC5883L connection failed");
@@ -138,11 +138,11 @@ void setup()
     EEPROM.get(REFERENCE_ALTITUDE_ADRESS, lastReferenceAltitude);
     EEPROM.get(APOGEE_ADRESS, lastApogee);
 
-    Serial.print("Last recorded uncorrected Apogee: ");
+    Serial.print(F("Last recorded uncorrected Apogee: "));
     Serial.println(lastApogee);
-    Serial.print("Last recorded reference Altitude: ");
+    Serial.print(F("Last recorded reference Altitude: "));
     Serial.println(lastReferenceAltitude);
-    Serial.print("Last recorded corrected Apogee: ");
+    Serial.print(F("Last recorded corrected Apogee: "));
     Serial.println(lastApogee - lastReferenceAltitude);
 
     float eeprom;
@@ -179,7 +179,7 @@ void loop()
                 EEPROM.put(eepromCurrentAddr, currentTime);
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
                 eepromWriteAltitudeThreshold += EEPROM_ALTITUDE_WRITE_STEP;
-                Serial.print("2");
+                Serial.print(F("2"));
             }
         }
         else
@@ -191,7 +191,7 @@ void loop()
                 EEPROM.put(eepromCurrentAddr, currentTime);
                 eepromCurrentAddr += sizeof(EEPROM_DATA_TYPE);
                 eepromWriteAltitudeThreshold -= EEPROM_ALTITUDE_WRITE_STEP;
-                Serial.print("1");
+                Serial.print(F("1"));
             }
         }
     }
@@ -239,7 +239,7 @@ void loop()
             parachuteReleased = true;
             parachuteReleaseTime = millis() / 1000.0;
 
-            Serial.println("Parachute released! Apogee/RefAlt");
+            Serial.println(F("Parachute released! Apogee/RefAlt"));
             Serial.println(apogee);
             Serial.println(referenceAltitude);
 
