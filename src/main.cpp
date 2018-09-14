@@ -15,19 +15,19 @@
 //Apc Serial port
 #include <SoftwareSerial.h>
 
-#define BUZZER_ENABLED false      //enables buzzer code, should be true during flight
+#define BUZZER_ENABLED false     //enables buzzer code, should be true during flight
 #define SET_DATA_WRITE_ALLOW true // sets eeprom write state to true, should be false during flight
 
 #define SQUIB_PIN 3
 #define PARACHUTE_RELEASED_LED 4 // BLUE
-#define WRITE_PERMISSION_LED 5 // RED
+#define WRITE_PERMISSION_LED 5   // RED
 #define BUZZER_PIN 6
 #define RX_FROM_APC 8
 #define TX_FROM_APC 7
 
-#define SAFETY_CLEAREANSE_TIME 0   // time waited for safe startup in milliseconds
+#define SAFETY_CLEAREANSE_TIME 10000       // time waited for safe startup in milliseconds
 #define ALTITUDE_IS_LOWER_THRESHOLD 15 // Number of consecutive lower values for altitude to detect apogee
-#define MIN_ALT_FOR_APOGEE_DETECTION 1  
+#define MIN_ALT_FOR_APOGEE_DETECTION 5
 #define ALTITUDE_DATA_POINTS 30
 
 #define TELEMETRY_DATA_POINTS 6
@@ -125,7 +125,7 @@ void setup()
     if (eepromWritePermission) //Write permission signal
     {
         digitalWrite(WRITE_PERMISSION_LED, HIGH);
-#if (BUZZER_ENABLED)
+    #if (BUZZER_ENABLED)
         for (int f = 0; f < 5; f++)
         {
             digitalWrite(BUZZER_PIN, HIGH);
@@ -133,7 +133,7 @@ void setup()
             digitalWrite(BUZZER_PIN, LOW);
             delay(500);
         }
-#endif
+    #endif
     }
     EEPROM.get(REFERENCE_ALTITUDE_ADRESS, lastReferenceAltitude);
     EEPROM.get(APOGEE_ADRESS, lastApogee);
@@ -158,6 +158,10 @@ void setup()
     //     Serial.print(segundos);
     //     Serial.print(",");
     // }
+
+    #if (BUZZER_ENABLED)
+        digitalWrite(BUZZER_PIN, HIGH);
+    #endif
 }
 
 void loop()
